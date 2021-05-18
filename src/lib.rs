@@ -24,64 +24,81 @@ pub struct ImNativeFileDialog<T> {
 
 impl<T> Default for ImNativeFileDialog<T> {
     fn default() -> Self {
-        Self {
-            receiver: None,
-        }
+        Self { receiver: None }
     }
 }
 
 impl ImNativeFileDialog<Vec<PathBuf>> {
     /// Shows a dialog that let users to open multiple files using [FileDialog::show_open_multiple_file()].
-    pub fn show_open_multiple_file(&mut self, location: Option<PathBuf>)  -> Result<(), ImNativeDialogError> {
+    pub fn show_open_multiple_file(
+        &mut self,
+        location: Option<PathBuf>,
+    ) -> Result<(), ImNativeDialogError> {
         self.show(|sender, dialog| {
             let dialog = match &location {
                 Some(location) => dialog.set_location(location),
                 None => dialog,
             };
             let result = dialog.show_open_multiple_file();
-            sender.send(result).expect("error sending show_open_multiple_file result to ui");
+            sender
+                .send(result)
+                .expect("error sending show_open_multiple_file result to ui");
             drop(location)
         })
     }
 }
 
-
 impl ImNativeFileDialog<Option<PathBuf>> {
     /// Shows a dialog that let users to open one directory using [FileDialog::show_open_single_dir()].
-    pub fn open_single_dir(&mut self, location: Option<PathBuf>) -> Result<(), ImNativeDialogError> {
+    pub fn open_single_dir(
+        &mut self,
+        location: Option<PathBuf>,
+    ) -> Result<(), ImNativeDialogError> {
         self.show(|sender, dialog| {
             let dialog = match &location {
                 Some(location) => dialog.set_location(location),
                 None => dialog,
             };
             let result = dialog.show_open_single_dir();
-            sender.send(result).expect("error sending open_single_dir result to ui");
+            sender
+                .send(result)
+                .expect("error sending open_single_dir result to ui");
             drop(location)
         })
     }
 
     /// Shows a dialog that let users to open one file using [FileDialog::show_open_single_file()].
-    pub fn open_single_file(&mut self, location: Option<PathBuf>) -> Result<(), ImNativeDialogError> {
+    pub fn open_single_file(
+        &mut self,
+        location: Option<PathBuf>,
+    ) -> Result<(), ImNativeDialogError> {
         self.show(|sender, dialog| {
             let dialog = match &location {
                 Some(location) => dialog.set_location(location),
                 None => dialog,
             };
             let result = dialog.show_open_single_file();
-            sender.send(result).expect("error sending open_single_file result to ui");
+            sender
+                .send(result)
+                .expect("error sending open_single_file result to ui");
             drop(location)
         })
     }
 
     /// Shows a dialog that let users to save one file using [FileDialog::show_save_single_file()].
-    pub fn show_save_single_file(&mut self, location: Option<PathBuf>) -> Result<(), ImNativeDialogError> {
+    pub fn show_save_single_file(
+        &mut self,
+        location: Option<PathBuf>,
+    ) -> Result<(), ImNativeDialogError> {
         self.show(|sender, dialog| {
             let dialog = match &location {
                 Some(location) => dialog.set_location(location),
                 None => dialog,
             };
             let result = dialog.show_save_single_file();
-            sender.send(result).expect("error sending show_save_single_file result to ui");
+            sender
+                .send(result)
+                .expect("error sending show_save_single_file result to ui");
             drop(location)
         })
     }
@@ -91,18 +108,24 @@ impl<T: Send + 'static + Default> ImNativeFileDialog<T> {
     /// Show a customized version of [FileDialog], use the `run`
     /// closure to customize the dialog and show the dialog. This
     /// closure runs in its own thread.
-    pub fn show<F: FnOnce(crossbeam_channel::Sender<Result<T, native_dialog::Error>>, FileDialog) + Send + 'static>(&mut self, run: F) -> Result<(), ImNativeDialogError> {
+    pub fn show<
+        F: FnOnce(crossbeam_channel::Sender<Result<T, native_dialog::Error>>, FileDialog)
+            + Send
+            + 'static,
+    >(
+        &mut self,
+        run: F,
+    ) -> Result<(), ImNativeDialogError> {
         if self.receiver.is_some() {
-            return Err(ImNativeDialogError::AlreadyOpen)
+            return Err(ImNativeDialogError::AlreadyOpen);
         }
-        
+
         let (sender, receiver) = crossbeam_channel::bounded(1);
         std::thread::spawn(move || {
             let dialog = FileDialog::new();
             run(sender, dialog)
         });
 
-        
         self.receiver = Some(receiver);
 
         Ok(())
@@ -114,9 +137,7 @@ impl<T: Send + 'static + Default> ImNativeFileDialog<T> {
     pub fn check(&mut self) -> Option<Result<T, native_dialog::Error>> {
         match self.receiver.take() {
             Some(receiver) => match receiver.try_recv() {
-                Ok(result) => {
-                    Some(result)
-                }
+                Ok(result) => Some(result),
                 Err(crossbeam_channel::TryRecvError::Disconnected) => {
                     log::warn!("OpenDialog channel disconnected");
                     Some(Ok(T::default()))
@@ -124,7 +145,7 @@ impl<T: Send + 'static + Default> ImNativeFileDialog<T> {
                 Err(crossbeam_channel::TryRecvError::Empty) => {
                     self.receiver = Some(receiver);
                     None
-                },
+                }
             },
             None => None,
         }

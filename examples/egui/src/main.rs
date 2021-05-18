@@ -21,7 +21,7 @@ impl App for ExampleApp {
         if let Some(result) = self.file_path_dialog.check() {
             match result {
                 Ok(Some(path)) => self.file_path = path,
-                Ok(None) => {},
+                Ok(None) => {}
                 Err(error) => {
                     eprintln!("Error selecting xplane_path: {}", error)
                 }
@@ -39,8 +39,13 @@ impl App for ExampleApp {
                     self.file_path = PathBuf::from(text_edit);
                 }
                 if ui.button("Browse").clicked() {
-                    let location = self.file_path.parent().map(|location| location.to_path_buf());
-                    self.file_path_dialog.open_single_file(location).expect("Unable to open file_path dialog");
+                    let location = self
+                        .file_path
+                        .parent()
+                        .map(|location| location.to_path_buf());
+                    self.file_path_dialog
+                        .open_single_file(location)
+                        .expect("Unable to open file_path dialog");
                 }
             });
         });
