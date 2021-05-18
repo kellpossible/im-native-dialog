@@ -1,0 +1,19 @@
+[package]
+name = "im-native-dialog"
+version = "0.1.0"
+authors = ["Luke Frisken <l.frisken@gmail.com>"]
+edition = "2018"
+description = "A wrapper around native-dialog for use with immediate mode gui libraries"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+crossbeam-channel = "0.5"
+log = "0.4"
+native-dialog = "0.5"
+thiserror = "1"
+
+[workspace]
+members = [
+    "examples/egui"
+]
