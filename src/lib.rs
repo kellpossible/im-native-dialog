@@ -133,7 +133,8 @@ impl<T: Send + 'static + Default> ImNativeFileDialog<T> {
 
     /// Check if the dialog is complete. If it is complete it will
     /// return `Some` with the result of the dialog, otherwise will
-    /// return `None`.
+    /// return `None`. This will update the status of
+    /// [ImNativeFileDialog::is_open()].
     pub fn check(&mut self) -> Option<Result<T, native_dialog::Error>> {
         match self.receiver.take() {
             Some(receiver) => match receiver.try_recv() {
@@ -152,7 +153,8 @@ impl<T: Send + 'static + Default> ImNativeFileDialog<T> {
     }
 
     /// Returns `true` if the dialog is currently open, otherwise
-    /// returns `false`.
+    /// returns `false`. Requires a previous call of
+    /// [ImNativeFileDialog::check()] to update the current status.
     pub fn is_open(&self) -> bool {
         self.receiver.is_some()
     }

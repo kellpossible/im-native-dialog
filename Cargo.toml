@@ -1,6 +1,6 @@
 [package]
 name = "im-native-dialog"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["Luke Frisken <l.frisken@gmail.com>"]
 edition = "2018"
 description = "A wrapper around native-dialog for use with immediate mode gui libraries"
