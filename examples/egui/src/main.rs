@@ -17,7 +17,7 @@ impl ExampleApp {
 }
 
 impl App for ExampleApp {
-    fn update(&mut self, ctx: &epi::egui::CtxRef, _frame: &mut epi::Frame<'_>) {
+    fn update(&mut self, ctx: &epi::egui::CtxRef, frame: &mut epi::Frame<'_>) {
         if let Some(result) = self.file_path_dialog.check() {
             match result {
                 Ok(Some(path)) => self.file_path = path,
@@ -43,7 +43,10 @@ impl App for ExampleApp {
                         .file_path
                         .parent()
                         .map(|location| location.to_path_buf());
+
+                    let repaint_signal = frame.repaint_signal();
                     self.file_path_dialog
+                        .with_callback(move |_| repaint_signal.request_repaint())
                         .open_single_file(location)
                         .expect("Unable to open file_path dialog");
                 }

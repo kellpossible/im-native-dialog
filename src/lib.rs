@@ -19,12 +19,13 @@ pub enum ImNativeDialogError {
 /// [crossbeam_channel], ready to be polled by the ui using
 /// [ImNativeFileDialog::check()]
 pub struct ImNativeFileDialog<T> {
+    callback: Option<Box<dyn FnOnce(&Result<T, native_dialog::Error>) + Send>>,
     receiver: Option<crossbeam_channel::Receiver<Result<T, native_dialog::Error>>>,
 }
 
 impl<T> Default for ImNativeFileDialog<T> {
     fn default() -> Self {
-        Self { receiver: None }
+        Self { callback: None, receiver: None }
     }
 }
 
@@ -34,12 +35,13 @@ impl ImNativeFileDialog<Vec<PathBuf>> {
         &mut self,
         location: Option<PathBuf>,
     ) -> Result<(), ImNativeDialogError> {
-        self.show(|sender, dialog| {
+        self.show(|sender, dialog, callback| {
             let dialog = match &location {
                 Some(location) => dialog.set_location(location),
                 None => dialog,
             };
             let result = dialog.show_open_multiple_file();
+            callback(&result);
             sender
                 .send(result)
                 .expect("error sending show_open_multiple_file result to ui");
@@ -54,12 +56,13 @@ impl ImNativeFileDialog<Option<PathBuf>> {
         &mut self,
         location: Option<PathBuf>,
     ) -> Result<(), ImNativeDialogError> {
-        self.show(|sender, dialog| {
+        self.show(|sender, dialog, callback| {
             let dialog = match &location {
                 Some(location) => dialog.set_location(location),
                 None => dialog,
             };
             let result = dialog.show_open_single_dir();
+            callback(&result);
             sender
                 .send(result)
                 .expect("error sending open_single_dir result to ui");
@@ -72,12 +75,13 @@ impl ImNativeFileDialog<Option<PathBuf>> {
         &mut self,
         location: Option<PathBuf>,
     ) -> Result<(), ImNativeDialogError> {
-        self.show(|sender, dialog| {
+        self.show(|sender, dialog, callback| {
             let dialog = match &location {
                 Some(location) => dialog.set_location(location),
                 None => dialog,
             };
             let result = dialog.show_open_single_file();
+            callback(&result);
             sender
                 .send(result)
                 .expect("error sending open_single_file result to ui");
@@ -90,12 +94,13 @@ impl ImNativeFileDialog<Option<PathBuf>> {
         &mut self,
         location: Option<PathBuf>,
     ) -> Result<(), ImNativeDialogError> {
-        self.show(|sender, dialog| {
+        self.show(|sender, dialog, callback| {
             let dialog = match &location {
                 Some(location) => dialog.set_location(location),
                 None => dialog,
             };
             let result = dialog.show_save_single_file();
+            callback(&result);
             sender
                 .send(result)
                 .expect("error sending show_save_single_file result to ui");
@@ -105,11 +110,21 @@ impl ImNativeFileDialog<Option<PathBuf>> {
 }
 
 impl<T: Send + 'static + Default> ImNativeFileDialog<T> {
+    /// Set a callback to use for this dialog which will be called
+    /// immediately upon dialog close in the dialog monitoring thread.
+    pub fn with_callback<C>(&mut self, callback: C) -> &mut Self
+    where
+        C: FnOnce(&Result<T, native_dialog::Error>) + Send + 'static
+    {
+        self.callback = Some(Box::new(callback));
+        self
+    }
+
     /// Show a customized version of [FileDialog], use the `run`
     /// closure to customize the dialog and show the dialog. This
     /// closure runs in its own thread.
     pub fn show<
-        F: FnOnce(crossbeam_channel::Sender<Result<T, native_dialog::Error>>, FileDialog)
+        F: FnOnce(crossbeam_channel::Sender<Result<T, native_dialog::Error>>, FileDialog, Box<dyn FnOnce(&Result<T, native_dialog::Error>)>)
             + Send
             + 'static,
     >(
@@ -121,9 +136,11 @@ impl<T: Send + 'static + Default> ImNativeFileDialog<T> {
         }
 
         let (sender, receiver) = crossbeam_channel::bounded(1);
+
+        let callback = self.callback.take().unwrap_or_else(|| Box::new(|_| {}));
         std::thread::spawn(move || {
             let dialog = FileDialog::new();
-            run(sender, dialog)
+            run(sender, dialog, callback)
         });
 
         self.receiver = Some(receiver);
