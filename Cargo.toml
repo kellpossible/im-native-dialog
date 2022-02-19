@@ -1,6 +1,6 @@
 [package]
 name = "im-native-dialog"
-version = "0.2.0"
+version = "0.3.0"
 authors = ["Luke Frisken <l.frisken@gmail.com>"]
 edition = "2018"
 description = "A wrapper around native-dialog for use with immediate mode gui libraries"
@@ -12,7 +12,7 @@ license = "MIT"
 [dependencies]
 crossbeam-channel = "0.5"
 log = "0.4"
-native-dialog = "0.5"
+native-dialog = "0.6"
 thiserror = "1"
 
 [workspace]
